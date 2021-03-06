@@ -1,0 +1,134 @@
+---
+title: "Hierarchial Clustering"
+author: "Suriya Prakaash S.K.T"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+## Table of Contents
+### Setting Directory
+```{r}
+library(NbClust)
+library(ggplot2)
+library(cluster)
+library(factoextra)
+library(dplyr)
+set.seed(1122)
+rm(list=ls())
+
+# Set working directory as needed
+setwd("C:/Users/ssund/Documents/R-Studio Directory")
+
+data.f <- read.csv("buddymove.csv", header=T, row.names = 1)
+head(data.f)
+```
+
+### Sampling data and implementing Hierarchial clustering
+```{r}
+summary(data.f)
+data.f <- as.data.frame(scale(data.f))
+data.f
+sample_data.f <- sample_n(data.f,size = 50)
+sample_data.f
+
+single.clu <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 1, hc_method = "single")
+complete.clu <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 1, hc_method = "complete")
+average.clu <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 1, hc_method = "average")
+
+fviz_dend(single.clu)
+fviz_dend(complete.clu)
+fviz_dend(average.clu)
+
+```
+
+### Listing the two Singleton clusters
+```{r}
+
+#Single Linkage:{16,25},{5,43},{18,39},{26,30},{31,48},{44,45},{21,42},{2,7},{19,50},{20,29},{11,36},{24,41}, {4,49},{6,35},{3,8},{12,46}
+
+#Complete Linkage: {13,28},{21,42},{4,49},{6,35},{3,8},{5,43},{26,30},{31,48},{16,25},{14,47},{11,36},{24,41}, {18,39},{20,29},{19,50},{2,7},{44,45},{12,46}
+
+#Average Linkage: {26,30},{31,48},{5,43},{4,49},{21,42},{13,28},{16,25},{14,47},{18,39},{11,36},{24,41},{19,50},{20,29},{15,33},{44,45},{2,7},{12,46},{6,35},{3,8}
+
+```
+
+### Inference from above clustering
+```{r}
+#The number of two singleton clusters in single linkage is 16 ,complete linkage is 18, average linkage is 19
+#Defining purity as the linkage strategy that produces the least two-singleton clusters, single linkage method is pure.
+```
+
+### Plotting the cluster
+```{r}
+plot(single.clu)
+abline(h=1.7, lty=2,col = "blue")
+
+#After drawing line at a height of 1.7,we will get 3 clusters. The first cluster has point 13, second cluster as point 28 and all the other points will fall in third cluster")
+```
+
+### Re-running above clusters using 3 linkage strategies and finding Silohuette Index
+```{r}
+single.cluster <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 3, hc_method = "single")
+fviz_dend(single.cluster)
+
+average.cluster <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 3, hc_method = "average")
+fviz_dend(average.cluster)
+
+complete.cluster<- eclust(sample_data.f,FUNcluster = c("hclust"), k = 3, hc_method = "complete")
+fviz_dend(complete.cluster)
+
+stats <- fpc::cluster.stats(dist(sample_data.f), cutree(single.cluster, k=3))
+cat(' Silhouette index single link',stats[['avg.silwidth']])
+stats <- fpc::cluster.stats(dist(sample_data.f), cutree(average.cluster, k=3))
+cat('\nSilhouette index average link',stats[['avg.silwidth']])
+stats <- fpc::cluster.stats(dist(sample_data.f), cutree(complete.cluster, k=3))
+cat('\nSilhouette index complete link',stats[['avg.silwidth']])
+
+```
+
+### Deteriming number of clusters using NBClust()
+```{r}
+NbClust(sample_data.f,method = "single")
+NbClust(sample_data.f,method = "complete")
+NbClust(sample_data.f,method = "average")
+
+#Number of  clusters determined by NbClust method for single is 2, for complete is 3 and for average is 6
+```
+
+### Silohuette Index for above NBClust() 
+```{r}
+clu_single <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 2, hc_method = "single")
+stats <- fpc::cluster.stats(dist(sample_data.f), cutree(clu_single, k=2))
+cat("Single Link Silwidth: ", stats[['avg.silwidth']])
+
+clu_complete <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 3, hc_method = "complete")
+stats <- fpc::cluster.stats(dist(sample_data.f), cutree(clu_complete, k=3))
+cat("\nComplete Link Silwidth: ", stats[['avg.silwidth']])
+
+clu_average <- eclust(sample_data.f,FUNcluster = c("hclust"), k = 6, hc_method = "average")
+silhouettestats <- fpc::cluster.stats(dist(sample_data.f), cutree(clu_average, k=6))
+cat("\nAverage Link Silwidth: ", stats[['avg.silwidth']])
+```
+
+### Inference on best strateg from the above 2 strategies
+```{r}
+
+value = ifelse(silhouette(clu_single$cluster,sample_data.f)>silhouette(single.cluster$cluster,sample_data.f),1,0)
+value
+
+value = ifelse(silhouette(clu_complete$cluster,sample_data.f)>silhouette(complete.cluster$cluster,sample_data.f),1,0)
+value
+
+value = ifelse(silhouette(clu_average$cluster,sample_data.f)>silhouette(average.cluster$cluster,sample_data.f),1,0)
+value
+
+
+#Single linkage is 26, Complete Linkage is 8, Average linkage is 17
+
+#Single linkage is the best linkage as defined by the Silhouette index because Silhouette width is maximum for the observations in Single linkage as compared to other linkages. i.e. Si is maximized for single linkage which means that the observations are well clustered in Single linkage as compared to Complete and Average linkages.
+```
